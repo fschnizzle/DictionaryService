@@ -1,21 +1,26 @@
 package Server;
 import java.io.*;
 import java.net.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.json.JSONObject;
+import java.nio.file.*;
+import java.util.Map;
 public class DictionaryServer {
 
-//    protected DictionaryService dictionaryService;
     private int port;
     private ServerSocket serverSocket;
+    private ConcurrentHashMap dictionary;
+
+    // Instance of DictionaryDataHandler to handle file operations
+    private DictionaryDataHandler dataHandler = new DictionaryDataHandler();
+
 
     /* Setters */
     public DictionaryServer(int port) {
         this.port = port;
     }
-//    public void setDictionaryService(DictionaryService dictionaryService) {
-//        this.dictionaryService = dictionaryService;
-//    }
 
     /* Methods */
     public void start() {
@@ -24,6 +29,9 @@ public class DictionaryServer {
 
         // Initialise ServerSocket and bind to port
         try {
+            // Load initial data from JSON file into ConcurrentHashMap
+//            dictionary = dataHandler.loadDictionaryFromFile("DictionaryService/src/main/java/Server/DictionaryItems.json");
+//            System.out.println(dictionary.get("yacht"));
             serverSocket = new ServerSocket(port);
             System.out.println("Server started on port " + port);
 
@@ -117,6 +125,8 @@ public class DictionaryServer {
     }
 
     public static void main(String[] args) throws IOException{
+
+
 
         // Initialise Server Port and Server Socket
         if (args.length != 2) {
