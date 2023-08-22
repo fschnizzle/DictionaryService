@@ -15,37 +15,53 @@ public class DictionaryClient {
     }
 
     /* Methods */
-    public void start(){
+    public void start() {
+        Socket socket = null;
+        DataOutputStream socketOutput = null;
+        DataInputStream socketInput = null;
+        BufferedReader userInput = null;
         try {
             // Bind client to new socket on host port
-            Socket socket = new Socket(hostname, port);
+            socket = new Socket(hostname, port);
             System.out.println("Connected to server on " + hostname + ":" + port);
 
             // Open data IO streams
-            DataOutputStream socketOutput = new DataOutputStream(socket.getOutputStream());
-            DataInputStream socketInput = new DataInputStream(socket.getInputStream());
-            BufferedReader userInput = new BufferedReader(new InputStreamReader(System.in));
+            socketOutput = new DataOutputStream(socket.getOutputStream());
+            socketInput = new DataInputStream(socket.getInputStream());
+            userInput = new BufferedReader(new InputStreamReader(System.in));
 
             /* Placeholder connection testing functionality */
-            while (true){
+            while (true) {
 
                 // Prompts user for action
                 int choice = displayMenu(userInput);
                 String request = handleChoice(choice, userInput);
 
                 // Handles EXIT
-                if (request.equals("EXIT")){
-                    socket.close();
-                    System.exit(0);
+                if (request.equals("EXIT")) {
+                    break;
                 }
                 // Send Request to server
+                socketOutput.writeUTF(request);
+                socketOutput.flush();
 
                 // Await response
+                String response = socketInput.readUTF();
+                System.out.println("Server Response: " + response);
+
             }
 
         } catch (IOException e) {
             System.out.println("Connection Refused: Check port and hostname");
-//            e.printStackTrace();
+        } finally {
+            // Handles the graceful closure of IO streams and socket
+            try {
+                if (socketOutput != null) socketOutput.close();
+                if (socketInput != null) socketInput.close();
+                if (socket != null) socket.close();
+            } catch (IOException e) {
+                System.out.println("Error closing resources: " + e.getMessage());
+            }
         }
     }
 
