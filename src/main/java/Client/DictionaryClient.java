@@ -2,6 +2,8 @@ package Client;
 
 import java.io.*;
 import java.net.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class DictionaryClient {
 
@@ -20,6 +22,8 @@ public class DictionaryClient {
         DataOutputStream socketOutput = null;
         DataInputStream socketInput = null;
         BufferedReader userInput = null;
+        int choice;
+        String request = "";
         try {
             // Bind client to new socket on host port
             socket = new Socket(hostname, port);
@@ -32,15 +36,20 @@ public class DictionaryClient {
 
             /* Placeholder connection testing functionality */
             while (true) {
+                // Displays options (with detailed help menu) if request is for "HELP"
+//                if (!request.equals("HELP")){
+//                    // Prompts user for action
+//                    choice = displayMenu(userInput);
+//                    request = handleChoice(choice, userInput);
+//                }
+//                while (request.equals("HELP")){
+//                    // Prompts user for action with detailed choices
+//                    choice = displayHelpMenu(userInput);
+//                    request = handleChoice(choice, userInput);
+//                }
+                request = getValidRequest(userInput, request);
 
-                // Prompts user for action
-                int choice = displayMenu(userInput);
-                String request = handleChoice(choice, userInput);
 
-                // Handles EXIT
-                if (request.equals("EXIT")) {
-                    break;
-                }
                 // Send Request to server
                 socketOutput.writeUTF(request);
                 socketOutput.flush();
@@ -48,6 +57,11 @@ public class DictionaryClient {
                 // Await response
                 String response = socketInput.readUTF();
                 System.out.println("Server Response: " + response);
+
+                // Handles EXIT
+                if (request.equals("EXIT")) {
+                    break; // Finally block handles IO / socket closure
+                }
 
             }
 
@@ -65,6 +79,28 @@ public class DictionaryClient {
         }
     }
 
+    private String getValidRequest(BufferedReader userInput, String request) throws IOException {
+        int choice = -1;
+        do { // Continue until a valid integer is entered
+            try { // Catch non integer inputs
+                do { // Catch input values outside of range 1-6
+                    choice = displayMenu(userInput);
+                    request = handleChoice(choice, userInput);
+                    while (request.equals("HELP")) {
+                        choice = displayHelpMenu(userInput);
+                        request = handleChoice(choice, userInput);
+                    }
+                } while (request.equals("RECHOOSE"));
+
+
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input. Please enter a valid integer.");
+                choice = -1;
+            }
+        } while (choice == -1);
+        return request;
+    }
+
     // Replace displayMenu with the visual GUI version later
     private int displayMenu(BufferedReader userInput) throws IOException {
         System.out.println("Choose an action:");
@@ -73,6 +109,19 @@ public class DictionaryClient {
         System.out.println("3. UPDATE");
         System.out.println("4. REMOVE");
         System.out.println("5. EXIT");
+        System.out.println("6. HELP");
+        System.out.print("Choice: ");
+        return Integer.parseInt(userInput.readLine());
+    }
+    // Replace displayMenu with the visual GUI version later
+    private int displayHelpMenu(BufferedReader userInput) throws IOException {
+        System.out.println("Help menu:");
+        System.out.println("1: QUERY - Query a word in the dictionary. [Fails if word NOT IN dictionary]");
+        System.out.println("2: ADD - Add a word and its meaning to the dictionary. [Fails if word ALREADY IN dictionary]");
+        System.out.println("3: UPDATE - Update the meaning of a word in the dictionary. [Fails if word NOT IN dictionary]");
+        System.out.println("4: REMOVE - Remove a word from the dictionary. [Fails if word NOT IN dictionary]");
+        System.out.println("5: EXIT - Exit the application.");
+        System.out.println("6: HELP - Show this help menu.");
         System.out.print("Choice: ");
         return Integer.parseInt(userInput.readLine());
     }
@@ -104,18 +153,34 @@ public class DictionaryClient {
                 command = "EXIT";
                 System.out.println("Exiting...");
                 return "EXIT";
+            case 6: // HELP
+                command = "HELP";
+                return "HELP";
             default:
-                System.out.println("Invalid choice.");
-                return "";
+                System.out.println("Invalid choice. Choose from the options listed below.");
+                return "RECHOOSE";
         }
 
         return command + ":" + word + (meaning.isEmpty() ? "" : ":" + meaning);
 
     }
 
+    public static boolean isValidWord(String word) {
+        // Checks if the word contains only alphabetical characters
+        Pattern pattern = Pattern.compile("^[a-zA-Z]+$");
+        Matcher matcher = pattern.matcher(word);
+        return matcher.matches();
+    }
     private String promptWord(String action, BufferedReader userInput) throws IOException {
-        System.out.println("Which word should be " + action + "?");
-        return userInput.readLine();
+        String word;
+        do {
+            System.out.println("Which word should be " + action + "?");
+            word = userInput.readLine();
+            if (!isValidWord(word)) {
+                System.out.println("Invalid input. Please enter a word made up of only alphabetical characters.");
+            }
+        } while (!isValidWord(word));
+        return word;
     }
 
     private String promptWordMeaning(String word, BufferedReader userInput) throws IOException {
