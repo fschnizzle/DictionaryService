@@ -15,14 +15,33 @@ public class DictionaryServer {
 
     // Instance of DictionaryDataHandler to handle file operations
     private DictionaryDataHandler dataHandler = new DictionaryDataHandler();
+    private String jsonFilePath;
 
 
     /* Setters */
-    public DictionaryServer(int port) {
+    public DictionaryServer(int port, String jsonFilePath) {
         this.port = port;
+        setJsonFilePath(jsonFilePath);
+    }
+
+    public void setDictionary(String jsonFilePath) throws IOException {
+        this.dictionary = dataHandler.loadDictionaryFromFile(jsonFilePath);
+    }
+
+    public void setJsonFilePath(String filePath){
+        this.jsonFilePath = filePath;
     }
 
     /* Methods */
+    public boolean wordExists(String word){
+        return dictionary.containsKey(word);
+    }
+
+    public String getDefinitions(String word){
+        String definitions = (String) this.dictionary.get(word);
+        definitions = definitions.replace(';','\n');
+        return definitions;
+    }
     public void start() {
         // Create a thread pool with a fixed number of threads (e.g., 10)
         ExecutorService threadPool = Executors.newFixedThreadPool(10);
@@ -30,8 +49,7 @@ public class DictionaryServer {
         // Initialise ServerSocket and bind to port
         try {
             // Load initial data from JSON file into ConcurrentHashMap
-//            dictionary = dataHandler.loadDictionaryFromFile("DictionaryService/src/main/java/Server/DictionaryItems.json");
-//            System.out.println(dictionary.get("yacht"));
+            setDictionary(this.jsonFilePath);
             serverSocket = new ServerSocket(port);
             System.out.println("Server started on port " + port);
 
@@ -76,10 +94,10 @@ public class DictionaryServer {
 
         // Loop until
         while (true) {
-
             // Read client's request
             String clientRequest = clientInput.readUTF();
 
+            // Handle Exit argument
             if ("EXIT".equalsIgnoreCase(clientRequest)) {
                 clientOutput.writeUTF("Disconnected from server");
                 clientOutput.flush();
@@ -95,23 +113,54 @@ public class DictionaryServer {
             String response = "";
 
             // Read the command, delegate to CommandHandler, and respond to the client.
-            // [PLACEHOLDER] Handle different commands
             switch (command) {
                 case "QUERY":
-                    // TODO: Implement logic to query the word in the dictionary
-                    response = "Definition of " + word + ": " + "[PLACEHOLDER DEFINITION]";
+                    // Return {word exists}: Strings for meanings on separate lines
+                    if (wordExists(word)) {
+                        String definitions = getDefinitions(word);
+                        response = "Definition of " + word + ": " + definitions;
+                    }
+                    // Return {word NOT exist}: 'Not in dictionary' msg
+                    else {
+                        response = "'" + word + "' is not in the dictionary";
+                    }
                     break;
                 case "ADD":
-                    // TODO: Implement logic to add the word and its meaning to the dictionary
-                    response = word + " added with definition: " + meaning;
+                    // Return {word does not exist}: (Add word.) Inform user of update.
+                    if (!wordExists(word)) {
+                        // Add word to dictionary
+                        dictionary.put(word, meaning);
+                        response = word + " successfully added to dictionary";
+                    }
+                    // Return {word already exists}: 'Already in dictionary' msg
+                    else {
+                        response = "'" + word + "' is already in the dictionary. Use UPDATE to modify '" + word  + "' meaning(s).";
+                    }
                     break;
                 case "UPDATE":
-                    // TODO: Implement logic to update the word's definition in the dictionary
-                    response = word + " updated with new definition: " + meaning;
+                    // Return {word exists}: (Update word.) Inform user of update success.
+                    if (wordExists(word)) {
+                        // Replace word in dictionary
+                        dictionary.replace(word, meaning);
+                        response = word + " successfully updated in dictionary";
+                    }
+                    // Return {word does NOT exist}: 'Not in dictionary' msg
+                    else {
+                        response = "'" + word + "' is not in the dictionary. Use ADD instead.";
+                    }
+                    // response = word + " updated with new definition: " + meaning;
                     break;
                 case "REMOVE":
-                    // TODO: Implement logic to remove the word from the dictionary
-                    response = word + " removed from the dictionary";
+                    // Return {word exists}: (Remove word.) Inform user of removal success
+                    if (wordExists(word)){
+                        // Remove word in dictionary
+                        dictionary.remove(word);
+                        response = word + " successfully removed from dictionary";
+                    }
+                    // Return {word does NOT exist}: 'Not in dictionary' msg
+                    else {
+                        response = "'" + word + "' is not in the dictionary. It may have already been removed.";
+                    }
                     break;
                 default:
                     response = "Invalid command";
@@ -125,9 +174,6 @@ public class DictionaryServer {
     }
 
     public static void main(String[] args) throws IOException{
-
-
-
         // Initialise Server Port and Server Socket
         if (args.length != 2) {
             System.out.println("Usage: java -jar DictionaryServer.jar <port> <dictionary-file>");
@@ -137,17 +183,12 @@ public class DictionaryServer {
         // Parse command line arguments for port number and JSON file
         try {
             int port = Integer.parseInt(args[0]);
-            String JSONFilePath = args[1];
 
-            DictionaryServer server = new DictionaryServer(port);
+            DictionaryServer server = new DictionaryServer(port, args[1]);
             server.start(); // Start server
         } catch (Exception e) {
             // TODO: Handle error for setting port, Dictfilepath or server
             e.printStackTrace();
         }
-
-
     }
-
-
 }
