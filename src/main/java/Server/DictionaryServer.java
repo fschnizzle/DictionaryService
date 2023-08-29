@@ -66,17 +66,6 @@ public class DictionaryServer {
                         // System.out.println("Connection with client lost.");
                     }
                 });
-
-                // Handle the client connection in a separate thread
-                // handleClient() essentially overrides the run() function of runnable interface
-//                new Thread(() -> {
-//                    try {
-//                        handleClient(clientSocket);
-//                    } catch (IOException e) {
-//                        //System.out.println("Connection with client lost.");
-//                        // Do nothing
-//                    }
-//                }).start();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -117,8 +106,8 @@ public class DictionaryServer {
                 case "QUERY":
                     // Return {word exists}: Strings for meanings on separate lines
                     if (wordExists(word)) {
-                        String definitions = getDefinitions(word);
-                        response = "Definition of " + word + ": " + definitions;
+                        // String definitions = getDefinitions(word);
+                        response = "/Q/" + getDefinitions(word);
                     }
                     // Return {word NOT exist}: 'Not in dictionary' msg
                     else {
@@ -130,7 +119,8 @@ public class DictionaryServer {
                     if (!wordExists(word)) {
                         // Add word to dictionary
                         dictionary.put(word, meaning);
-                        response = word + " successfully added to dictionary";
+                        response = "SUCCESS";
+                        //response = word + " successfully added to dictionary";
                     }
                     // Return {word already exists}: 'Already in dictionary' msg
                     else {
@@ -142,7 +132,8 @@ public class DictionaryServer {
                     if (wordExists(word)) {
                         // Replace word in dictionary
                         dictionary.replace(word, meaning);
-                        response = word + " successfully updated in dictionary";
+                        response = "SUCCESS";
+//                        //response = word + " successfully updated in dictionary";
                     }
                     // Return {word does NOT exist}: 'Not in dictionary' msg
                     else {
@@ -155,7 +146,8 @@ public class DictionaryServer {
                     if (wordExists(word)){
                         // Remove word in dictionary
                         dictionary.remove(word);
-                        response = word + " successfully removed from dictionary";
+                        response = "SUCCESS";
+//                        //response = word + " successfully removed from dictionary";
                     }
                     // Return {word does NOT exist}: 'Not in dictionary' msg
                     else {

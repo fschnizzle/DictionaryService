@@ -1,14 +1,28 @@
 package Client;
 
+import javax.swing.*;
+import java.awt.*;
 import java.io.*;
 import java.net.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
 
 public class DictionaryClient {
 
     private String hostname;
     private int port;
+    private BlockingQueue<String> requestQueue = new LinkedBlockingQueue<>();
+
+
+    private clientRequestForm formGUI;
+
+    /* FOR NOW */
+//    private JFrame frame;
+//    private JButton queryButton, addButton, updateButton, removeButton, exitButton, helpButton;
+
 
     /* Constructor */
     public DictionaryClient(String hostname, int port){
@@ -16,68 +30,174 @@ public class DictionaryClient {
         this.port = port;
     }
 
+    // Setters
+    public void setForm(clientRequestForm formGUI) {
+        this.formGUI = formGUI;
+    }
+
     /* Methods */
+    public void processRequest(String request) {
+        try {
+            requestQueue.put(request);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
     public void start() {
-        Socket socket = null;
-        DataOutputStream socketOutput = null;
-        DataInputStream socketInput = null;
+//        Socket socket = null;
+//        DataOutputStream socketOutput = null;
+//        DataInputStream socketInput = null;
         BufferedReader userInput = null;
-        int choice;
-        String request = "";
         try {
             // Bind client to new socket on host port
-            socket = new Socket(hostname, port);
+            final Socket socket = new Socket(hostname, port);
             System.out.println("Connected to server on " + hostname + ":" + port);
 
+            // Start GUI
+            System.out.println("BEFORE");
+            setForm(new clientRequestForm(this));
+            System.out.println("AFTER");
+
             // Open data IO streams
-            socketOutput = new DataOutputStream(socket.getOutputStream());
-            socketInput = new DataInputStream(socket.getInputStream());
-            userInput = new BufferedReader(new InputStreamReader(System.in));
+            final DataOutputStream socketOutput = new DataOutputStream(socket.getOutputStream());
+            final DataInputStream socketInput = new DataInputStream(socket.getInputStream());
 
-            /* Placeholder connection testing functionality */
-            while (true) {
-                // Displays options (with detailed help menu) if request is for "HELP"
-//                if (!request.equals("HELP")){
-//                    // Prompts user for action
-//                    choice = displayMenu(userInput);
-//                    request = handleChoice(choice, userInput);
-//                }
-//                while (request.equals("HELP")){
-//                    // Prompts user for action with detailed choices
-//                    choice = displayHelpMenu(userInput);
-//                    request = handleChoice(choice, userInput);
-//                }
-                request = getValidRequest(userInput, request);
+            new Thread(() -> {
+                try {
+                    while (true) {
+                        // Wait for a request to become available and take it from the queue
+                        String request = requestQueue.take();
 
+                        // Send Request to the server
+                        socketOutput.writeUTF(request);
+                        socketOutput.flush();
 
-                // Send Request to server
-                socketOutput.writeUTF(request);
-                socketOutput.flush();
+                        // Await response from the server
+                        String response = socketInput.readUTF();
 
-                // Await response
-                String response = socketInput.readUTF();
-                System.out.println("Server Response: " + response);
+                        // Handle EXIT case
+                        if ("EXIT".equals(request)) {
+                            break;
+                        }
 
-                // Handles EXIT
-                if (request.equals("EXIT")) {
-                    break; // Finally block handles IO / socket closure
+                        // Handle GUI Update
+                        handleGUIupdate(request, response);
+
+                    }
+                } catch (InterruptedException | IOException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    // Close resources
+                    try {
+                        if (socketOutput != null) socketOutput.close();
+                        if (socketInput != null) socketInput.close();
+                        if (socket != null) socket.close();
+                    } catch (IOException e) {
+                        System.out.println("Error closing resources: " + e.getMessage());
+                    }
                 }
-
-            }
+            }).start();
 
         } catch (IOException e) {
             System.out.println("Connection Refused: Check port and hostname");
-        } finally {
-            // Handles the graceful closure of IO streams and socket
-            try {
-                if (socketOutput != null) socketOutput.close();
-                if (socketInput != null) socketInput.close();
-                if (socket != null) socket.close();
-            } catch (IOException e) {
-                System.out.println("Error closing resources: " + e.getMessage());
-            }
         }
     }
+
+    private void handleGUIupdate(String req, String resp) {
+        // Parse Command, word, response
+        String[] parseReq = req.split(":");
+        String command = parseReq[0];
+        String word = parseReq[1];
+
+        String statusMessage;
+
+        // Switch case
+        switch (command) {
+            case "QUERY":
+                // Check for successful Query prefix "/Q/"
+                String prefix = resp.substring(0, 3);
+                if (prefix.equals("/Q/")){
+                    formGUI.updateQueryOutput(word, resp.substring(3));
+                    formGUI.updateESMessage(false,"");
+                } else{
+                    formGUI.updateESMessage(true,"Error: Word '" + word + "' not found in dictionary");
+                }
+                break;
+            case "ADD":
+                if (resp.equals("SUCCESS")) {
+                    statusMessage = "Successfully added " + word;
+                    formGUI.updateESMessage(false, "");
+                } else {
+                    formGUI.updateESMessage(true, "Error: Could not add '" + word + "'. It might already exist.");
+                }
+                break;
+            case "UPDATE":
+                if (resp.equals("SUCCESS")) {
+                    statusMessage = "Successfully updated " + word;
+                    formGUI.updateESMessage(false, "");
+                } else {
+                    formGUI.updateESMessage(true, "Error: Could not update '" + word + "'. It might not exist.");
+                }
+                break;
+            case "REMOVE":
+                if (resp.equals("SUCCESS")) {
+                    statusMessage = "Successfully removed " + word;
+                    formGUI.updateESMessage(false, "");
+                } else {
+                    formGUI.updateESMessage(true, "Error: Could not remove '" + word + "'. It might not exist.");
+                }
+                break;
+            default:
+                formGUI.updateESMessage(true, "Unknown command: " + command);
+        }
+    }
+
+    // ... other methods like getValidRequest, validateWord, etc.
+
+
+
+//    private void createGUI() {
+//        // Sample GUI (not linked to anything)
+//        // Should be contained within its own class
+//
+//        frame = new JFrame("Dictionary Client");
+//        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+//        frame.setSize(300, 200);
+//
+//        queryButton = new JButton("QUERY");
+//        addButton = new JButton("ADD");
+//        updateButton = new JButton("UPDATE");
+//        removeButton = new JButton("REMOVE");
+//        exitButton = new JButton("EXIT");
+//        helpButton = new JButton("HELP");
+//
+//        frame.setLayout(new FlowLayout());
+//
+//        frame.add(queryButton);
+//        frame.add(addButton);
+//        frame.add(updateButton);
+//        frame.add(removeButton);
+//        frame.add(exitButton);
+//        frame.add(helpButton);
+//
+//        BufferedReader userInput = new BufferedReader(new InputStreamReader(System.in));
+//
+//        queryButton.addActionListener(e -> {
+//            try {
+//                handleChoice(1, userInput);
+//            } catch (IOException ex) {
+//                throw new RuntimeException(ex);
+//            }
+//        });
+////        addButton.addActionListener(e -> handleChoice(2));
+////        updateButton.addActionListener(e -> handleChoice(3));
+////        removeButton.addActionListener(e -> handleChoice(4));
+////        exitButton.addActionListener(e -> handleChoice(5));
+////        helpButton.addActionListener(e -> handleChoice(6));
+//
+//        frame.setVisible(true);
+//    }
 
     private String getValidRequest(BufferedReader userInput, String request) throws IOException {
         int choice = -1;
@@ -164,6 +284,10 @@ public class DictionaryClient {
         return command + ":" + word + (meaning.isEmpty() ? "" : ":" + meaning);
 
     }
+
+
+
+
 
     public static boolean isValidWord(String word) {
         // Checks if the word contains only alphabetical characters
