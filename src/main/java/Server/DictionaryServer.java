@@ -4,9 +4,8 @@ import java.net.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.json.JSONObject;
-import java.nio.file.*;
-import java.util.Map;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 public class DictionaryServer {
 
     private int port;
@@ -46,10 +45,29 @@ public class DictionaryServer {
         // Create a thread pool with a fixed number of threads (e.g., 10)
         ExecutorService threadPool = Executors.newFixedThreadPool(10);
 
+
+        // Load initial data from JSON file into ConcurrentHashMap
+        try {
+            setDictionary(this.jsonFilePath);
+        } catch (IOException e) {
+            System.out.println(("ERROR: Couldn't access dictionary file. Likely an invalid file path."));
+            return;
+        }
+
+
+        // Create a ScheduledExecutorService to save dictionary at regular intervals
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+        Runnable saveTask = () -> {
+            try {
+                dataHandler.saveDictionaryToFile(dictionary, jsonFilePath);
+            } catch (IOException e) {
+                e.printStackTrace(); // You may replace this with proper logging later
+            }
+        };
+        scheduler.scheduleAtFixedRate(saveTask, 0, 30, TimeUnit.SECONDS); // saves every 30 seconds
+
         // Initialise ServerSocket and bind to port
         try {
-            // Load initial data from JSON file into ConcurrentHashMap
-            setDictionary(this.jsonFilePath);
             serverSocket = new ServerSocket(port);
             System.out.println("Server started on port " + port);
 
@@ -63,20 +81,28 @@ public class DictionaryServer {
                         handleClient(clientSocket);
                     } catch (IOException e) {
                         // Handle disconnection from client
-                        // System.out.println("Connection with client lost.");
+                        // Does nothing...
                     }
                 });
             }
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
+            try {
+                if (serverSocket != null && !serverSocket.isClosed()) {
+                    serverSocket.close();
+                }
+            } catch (IOException e) {
+                System.out.println("ERROR: Could not close server socket.");
+            }
+
             // Shuts down threadpool
             threadPool.shutdown();
+            scheduler.shutdown();
         }
     }
 
     private void handleClient(Socket clientSocket) throws IOException {
-        // TODO: Handle the client's request.
         // I/O streams for client messaging
         DataInputStream clientInput = new DataInputStream(clientSocket.getInputStream());
         DataOutputStream clientOutput = new DataOutputStream(clientSocket.getOutputStream());
@@ -106,7 +132,6 @@ public class DictionaryServer {
                 case "QUERY":
                     // Return {word exists}: Strings for meanings on separate lines
                     if (wordExists(word)) {
-                        // String definitions = getDefinitions(word);
                         response = "/Q/" + getDefinitions(word);
                     }
                     // Return {word NOT exist}: 'Not in dictionary' msg
@@ -120,7 +145,6 @@ public class DictionaryServer {
                         // Add word to dictionary
                         dictionary.put(word, meaning);
                         response = "SUCCESS";
-                        //response = word + " successfully added to dictionary";
                     }
                     // Return {word already exists}: 'Already in dictionary' msg
                     else {
@@ -133,7 +157,6 @@ public class DictionaryServer {
                         // Replace word in dictionary
                         dictionary.replace(word, meaning);
                         response = "SUCCESS";
-//                        //response = word + " successfully updated in dictionary";
                     }
                     // Return {word does NOT exist}: 'Not in dictionary' msg
                     else {
@@ -147,7 +170,6 @@ public class DictionaryServer {
                         // Remove word in dictionary
                         dictionary.remove(word);
                         response = "SUCCESS";
-//                        //response = word + " successfully removed from dictionary";
                     }
                     // Return {word does NOT exist}: 'Not in dictionary' msg
                     else {
@@ -162,6 +184,13 @@ public class DictionaryServer {
             // Send the response back to the client
             clientOutput.writeUTF(response);
             clientOutput.flush();
+        }
+
+        try {
+            if (clientOutput != null) clientOutput.close();
+            if (clientInput != null) clientInput.close();
+        } catch (IOException e) {
+            System.out.println("Error closing resources: " + e.getMessage());
         }
     }
 
@@ -178,8 +207,11 @@ public class DictionaryServer {
 
             DictionaryServer server = new DictionaryServer(port, args[1]);
             server.start(); // Start server
+        } catch (NumberFormatException e) {
+            System.out.println("Error: Port must be an integer.");
         } catch (Exception e) {
-            // TODO: Handle error for setting port, Dictfilepath or server
+            // Catch-all for other exceptions
+            System.out.println("An unexpected error occurred.");
             e.printStackTrace();
         }
     }

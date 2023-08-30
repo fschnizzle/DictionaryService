@@ -79,27 +79,12 @@ public class clientRequestForm extends JFrame {
 
         // Check input validity
         if (isValid) {
-//            System.out.println(("ATTEMPTING TO" + command + " " + word));
             request = command + ":" + word + (meaning.isEmpty() ? "" : ":" + meaning);
             client.processRequest(request);
         } else {
             ESMessage = command + " ERROR: Invalid word or meaning given.";
-//            System.out.println("Invalid word or meaning given.");
             this.updateESMessage(true, ESMessage);
-//            System.out.println("Invalid word or meaning entered. Use alphabet characters only for word and ____.");
         }
-
-//
-//        if(!isValid) {
-//            request = "INVALID";
-//        }
-
-
-
-        // For update, add returns format --> COMMAND:WORD:MEANING
-        // For remove, query returns format --> COMMAND:WORD
-        // Return command + ":" + word + (meaning.isEmpty() ? "" : ":" + meaning);
-        // client.processRequest(command + ":" + word + (meaning.isEmpty() ? "" : ":" + meaning));
     }
 
     private boolean validateWord(String word) {
@@ -110,19 +95,6 @@ public class clientRequestForm extends JFrame {
         // Checks to ensure it isn't empty. Doesn't check for anything else.
         return !meaning.isEmpty();
     }
-
-//    public void updateErrorSuccessOutput(String serverResponse){
-//        // Updates the GUI status output based on the server's response
-//        ErrorSuccessTextArea.setText(serverResponse);
-//    }
-
-//    public void updateGUI(){
-//        //clientRequestForm.
-//        // Update the GUI based on the server's response
-//        // For example, if you have a JTextArea to display the server's response:
-////        ErrorSuccessTextArea.setText("Error: Invalid Input");
-//    }
-
     public void updateQueryOutput(String word, String resMeaning){
         // Updates Query Output with Word and server response meaning
         String capWord = word.substring(0, 1).toUpperCase() + word.substring(1);
@@ -145,19 +117,16 @@ public class clientRequestForm extends JFrame {
     public void updateESMessage(Boolean isError, String errorSuccessMessage){
         Color darkishGreen = new Color(0, 128, 0); // RGB values for dark green
 
-        // Update the Error / Success Text field with message
+        // Update the Error / Success Text field with coloured message
         if (isError){
+            // Change font colour to RED for ERROR messages
             ErrorSuccessTextArea.setForeground(Color.RED);
         }
         else{
+            // Change font colour to DARK GREEN for SUCCESS messages
             ErrorSuccessTextArea.setForeground(darkishGreen);
         }
         ErrorSuccessTextArea.setText(errorSuccessMessage);
-
-
-
-        // if isError then update icon to a RED CROSS
-        // else update icon to a GREEN TICK
     }
     public void createAndShowGUI(){
         setContentPane(MainPanel);
@@ -167,26 +136,10 @@ public class clientRequestForm extends JFrame {
         setLocationRelativeTo(null);
         setVisible(true);
 
-        /* Attach event listeners to buttons*/
+        /* Event Listeners */
         QueryButton.addActionListener(e -> handleChoice(1));
-        // Rest of event listeners
         AddButton.addActionListener(e -> handleChoice(2));
-//        System.out.println("there");
         UpdateButton.addActionListener(e -> handleChoice(3));
         DeleteButton.addActionListener(e -> handleChoice(4));
-//        exitButton.addActionListener(e -> handleChoice(5));
-//        helpButton.addActionListener(e -> handleChoice(6));
-
-
-
-
-
     }
-
-
-    // DELETE LATER: FOR TESTINg
-//    public static void main(String[] args){
-//        // HARDCODED
-//        new clientRequestForm(new DictionaryClient("localhost", 9999));
-//    }
 }

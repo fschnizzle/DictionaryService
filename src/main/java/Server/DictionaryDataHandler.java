@@ -29,9 +29,6 @@ public class DictionaryDataHandler {
         for (Map.Entry<String, String> entry : dictionary.entrySet()) {
             jsonObject.put(entry.getKey(), entry.getValue());
         }
-
         Files.write(Paths.get(filePath), jsonObject.toString(4).getBytes()); // 4 sets the indent factor
     }
-    // TODO: Implement save on regular intervals (check requirements on this again)
-
 }
