@@ -55,9 +55,7 @@ public class DictionaryClient {
             System.out.println("Connected to server on " + hostname + ":" + port);
 
             // Start GUI
-            System.out.println("BEFORE");
             setForm(new clientRequestForm(this));
-            System.out.println("AFTER");
 
             // Open data IO streams
             final DataOutputStream socketOutput = new DataOutputStream(socket.getOutputStream());
@@ -77,6 +75,7 @@ public class DictionaryClient {
                         String response = socketInput.readUTF();
 
                         // Handle EXIT case
+                        // TODO: Delete later
                         if ("EXIT".equals(request)) {
                             break;
                         }
@@ -119,37 +118,38 @@ public class DictionaryClient {
                 String prefix = resp.substring(0, 3);
                 if (prefix.equals("/Q/")){
                     formGUI.updateQueryOutput(word, resp.substring(3));
-                    formGUI.updateESMessage(false,"");
+                    formGUI.updateESMessage(false, command + " SUCCESS!");
+
                 } else{
-                    formGUI.updateESMessage(true,"Error: Word '" + word + "' not found in dictionary");
+                    formGUI.updateESMessage(true,command + " ERROR: Word '" + word + "' not found in dictionary");
                 }
                 break;
             case "ADD":
                 if (resp.equals("SUCCESS")) {
                     statusMessage = "Successfully added " + word;
-                    formGUI.updateESMessage(false, "");
+                    formGUI.updateESMessage(false, command + " " + resp + "!");
                 } else {
-                    formGUI.updateESMessage(true, "Error: Could not add '" + word + "'. It might already exist.");
+                    formGUI.updateESMessage(true, command + " ERROR: Could not add '" + word + "'. It might already exist. Try UPDATE instead.");
                 }
                 break;
             case "UPDATE":
                 if (resp.equals("SUCCESS")) {
                     statusMessage = "Successfully updated " + word;
-                    formGUI.updateESMessage(false, "");
+                    formGUI.updateESMessage(false, command + " " + resp + "!");
                 } else {
-                    formGUI.updateESMessage(true, "Error: Could not update '" + word + "'. It might not exist.");
+                    formGUI.updateESMessage(true, command + " ERROR: Could not update '" + word + "'. It might not exist. Try ADD instead.");
                 }
                 break;
             case "REMOVE":
                 if (resp.equals("SUCCESS")) {
                     statusMessage = "Successfully removed " + word;
-                    formGUI.updateESMessage(false, "");
+                    formGUI.updateESMessage(false, command + " " + resp + "!");
                 } else {
-                    formGUI.updateESMessage(true, "Error: Could not remove '" + word + "'. It might not exist.");
+                    formGUI.updateESMessage(true, command + " ERROR: Could not remove '" + word + "'. It might not exist.");
                 }
                 break;
             default:
-                formGUI.updateESMessage(true, "Unknown command: " + command);
+                formGUI.updateESMessage(true, "Unknown command ERROR: " + command);
         }
     }
 

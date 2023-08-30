@@ -1,13 +1,14 @@
 package Client;
 
 import javax.swing.*;
+import java.awt.*;
+import java.awt.Color;
 
 public class clientRequestForm extends JFrame {
 
-    private DictionaryClient client;
-    private  JTextArea responseField; /* Delete Later: "To display server responses" */
+    private DictionaryClient client; // Connects to a single client
 
-    /* Initialise JFrame Component */
+    /* Initialise JFrame Components */
     private JTextArea ErrorSuccessTextArea;
     private JPanel SuccessErrorMessage;
     private JPanel HeaderPanel;
@@ -48,7 +49,6 @@ public class clientRequestForm extends JFrame {
         String meaning = "";
         boolean isValid = false;
         String ESMessage = "";
-        System.out.println("and here");
 
         switch (choice) {
             case 1: // QUERY
@@ -61,7 +61,6 @@ public class clientRequestForm extends JFrame {
                 word = WordInputField.getText().trim().toLowerCase(); // Gets input from the WordInputField JTextField
                 meaning = MeaningInputField.getText().trim(); // Gets input from the MeaningInputField JTextField
                 isValid = validateWord(word) && validateMeaning(meaning);
-                System.out.println(("ATTEMPTING TO ADD: " + word + " with meaning: " + meaning));
                 break;
             case 3: // UPDATE
                 command = "UPDATE";
@@ -74,16 +73,8 @@ public class clientRequestForm extends JFrame {
                 word = WordInputField.getText().trim().toLowerCase(); // Gets input from the WordInputField JTextField
                 isValid = validateWord(word);
                 break;
-            case 5: // EXIT
-                command = "EXIT";
-                System.out.println("Exiting...");
-                request = "EXIT";
-            case 6: // HELP
-                command = "HELP";
-                request = "HELP";
             default:
-                System.out.println("Invalid choice. Choose from the options listed below.");
-                request = "RECHOOSE";
+                break;
         }
 
         // Check input validity
@@ -92,9 +83,9 @@ public class clientRequestForm extends JFrame {
             request = command + ":" + word + (meaning.isEmpty() ? "" : ":" + meaning);
             client.processRequest(request);
         } else {
-            ESMessage = "ERROR: Invalid word or meaning given.";
+            ESMessage = command + " ERROR: Invalid word or meaning given.";
 //            System.out.println("Invalid word or meaning given.");
-            this.updateErrorSuccessOutput(ESMessage);
+            this.updateESMessage(true, ESMessage);
 //            System.out.println("Invalid word or meaning entered. Use alphabet characters only for word and ____.");
         }
 
@@ -120,22 +111,20 @@ public class clientRequestForm extends JFrame {
         return !meaning.isEmpty();
     }
 
-    public void updateErrorSuccessOutput(String serverResponse){
-        //clientRequestForm.
-        // Update the GUI based on the server's response
-        // For example, if you have a JTextArea to display the server's response:
-        ErrorSuccessTextArea.setText(serverResponse);
-    }
+//    public void updateErrorSuccessOutput(String serverResponse){
+//        // Updates the GUI status output based on the server's response
+//        ErrorSuccessTextArea.setText(serverResponse);
+//    }
 
-    public void updateGUI(){
-        //clientRequestForm.
-        // Update the GUI based on the server's response
-        // For example, if you have a JTextArea to display the server's response:
-//        ErrorSuccessTextArea.setText("Error: Invalid Input");
-    }
+//    public void updateGUI(){
+//        //clientRequestForm.
+//        // Update the GUI based on the server's response
+//        // For example, if you have a JTextArea to display the server's response:
+////        ErrorSuccessTextArea.setText("Error: Invalid Input");
+//    }
 
     public void updateQueryOutput(String word, String resMeaning){
-        // Update Query Output with Word and server response meaning
+        // Updates Query Output with Word and server response meaning
         String capWord = word.substring(0, 1).toUpperCase() + word.substring(1);
         WordHeading.setText(capWord);
 
@@ -154,8 +143,18 @@ public class clientRequestForm extends JFrame {
     }
 
     public void updateESMessage(Boolean isError, String errorSuccessMessage){
+        Color darkishGreen = new Color(0, 128, 0); // RGB values for dark green
+
         // Update the Error / Success Text field with message
+        if (isError){
+            ErrorSuccessTextArea.setForeground(Color.RED);
+        }
+        else{
+            ErrorSuccessTextArea.setForeground(darkishGreen);
+        }
         ErrorSuccessTextArea.setText(errorSuccessMessage);
+
+
 
         // if isError then update icon to a RED CROSS
         // else update icon to a GREEN TICK
