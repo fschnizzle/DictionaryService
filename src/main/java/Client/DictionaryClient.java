@@ -1,3 +1,16 @@
+/**
+ * COMP90015: Distributed Systems - Assignment 1
+ * File: DictionaryClient.java
+ *
+ * Author: Flynn Schneider
+ * Student ID: 982143
+ * Date: 31/8/23
+ *
+ * Description: This class creates a client connections and facilitates the connection
+ * to an active Dictionary Server, and then requests to that server.
+ * Usage: java -jar DictionaryClient.jar <server-address> <port>
+ */
+
 package Client;
 
 import java.io.*;
@@ -31,17 +44,13 @@ public class DictionaryClient {
         }
     }
     public void start() {
-//        Socket socket = null;
-//        DataOutputStream socketOutput = null;
-//        DataInputStream socketInput = null;
-        BufferedReader userInput = null;
         try {
             // Bind client to new socket on host port
             final Socket socket = new Socket(hostname, port);
-            System.out.println("Connected to server on " + hostname + ":" + port);
 
             // Start GUI
             setForm(new clientRequestForm(this));
+            formGUI.updateESMessage(false, "Connected to server on " + hostname + ":" + port);
 
             // Open data IO streams
             final DataOutputStream socketOutput = new DataOutputStream(socket.getOutputStream());
@@ -60,32 +69,29 @@ public class DictionaryClient {
                         // Await response from the server
                         String response = socketInput.readUTF();
 
-                        // Handle EXIT case
-                        // TODO: Delete later
-                        if ("EXIT".equals(request)) {
-                            break;
-                        }
-
                         // Handle GUI Update
                         handleGUIupdate(request, response);
 
                     }
-                } catch (InterruptedException | IOException e) {
+                } catch (Exception e) {
+                    System.out.println("An error occurred: " + e.getMessage());
+                    formGUI.updateESMessage(true, "An error occurred: " + e.getMessage());
                     Thread.currentThread().interrupt();
                 } finally {
                     // Close resources
                     try {
-                        if (socketOutput != null) socketOutput.close();
-                        if (socketInput != null) socketInput.close();
-                        if (socket != null) socket.close();
+                        socketOutput.close();
+                        socketInput.close();
+                        socket.close();
                     } catch (IOException e) {
-                        System.out.println("Error closing resources: " + e.getMessage());
+                        System.out.println("Error closing socket resources: " + e.getMessage());
                     }
                 }
             }).start();
 
         } catch (IOException e) {
-            System.out.println("Connection Refused: Check port and hostname");
+            // Show connection error in command line.
+            System.out.println("Connection Refused: Ensure host and port number are valid and that server is active.");
         }
     }
     private void handleGUIupdate(String req, String resp) {
@@ -93,7 +99,6 @@ public class DictionaryClient {
         String[] parseReq = req.split(":");
         String command = parseReq[0];
         String word = parseReq[1];
-
         String statusMessage;
 
         // Switch case
@@ -103,7 +108,7 @@ public class DictionaryClient {
                 String prefix = resp.substring(0, 3);
                 if (prefix.equals("/Q/")){
                     formGUI.updateQueryOutput(word, resp.substring(3));
-                    formGUI.updateESMessage(false, command + " SUCCESS!");
+                    formGUI.updateESMessage(false, "Queried: '" + word + "'");
 
                 } else{
                     formGUI.updateESMessage(true,command + " ERROR: Word '" + word + "' not found in dictionary");
@@ -111,24 +116,24 @@ public class DictionaryClient {
                 break;
             case "ADD":
                 if (resp.equals("SUCCESS")) {
-                    statusMessage = "Successfully added " + word;
-                    formGUI.updateESMessage(false, command + " " + resp + "!");
+                    statusMessage = "Successfully added ";
+                    formGUI.updateESMessage(false, " " + statusMessage + "'" + word + "'.");
                 } else {
                     formGUI.updateESMessage(true, command + " ERROR: Could not add '" + word + "'. It might already exist. Try UPDATE instead.");
                 }
                 break;
             case "UPDATE":
                 if (resp.equals("SUCCESS")) {
-                    statusMessage = "Successfully updated " + word;
-                    formGUI.updateESMessage(false, command + " " + resp + "!");
+                    statusMessage = "Successfully updated ";
+                    formGUI.updateESMessage(false, " " + statusMessage + "'" + word + "'.");
                 } else {
                     formGUI.updateESMessage(true, command + " ERROR: Could not update '" + word + "'. It might not exist. Try ADD instead.");
                 }
                 break;
             case "REMOVE":
                 if (resp.equals("SUCCESS")) {
-                    statusMessage = "Successfully removed " + word;
-                    formGUI.updateESMessage(false, command + " " + resp + "!");
+                    statusMessage = "Successfully removed ";
+                    formGUI.updateESMessage(false, " " + statusMessage + "'" + word + "'.");
                 } else {
                     formGUI.updateESMessage(true, command + " ERROR: Could not remove '" + word + "'. It might not exist.");
                 }
@@ -139,6 +144,7 @@ public class DictionaryClient {
     }
     public static void main(String[] args){
         // Takes command line call like this: java –jar DictionaryClient.jar <server-address> <server-port>
+
         // Check for valid command line arguments
         if (args.length != 2) {
             System.out.println("Usage: java -jar DictionaryClient.jar <server-address> <port>");
@@ -152,8 +158,10 @@ public class DictionaryClient {
 
             DictionaryClient client = new DictionaryClient(hostname, port);
             client.start();
-        } catch (Exception e){
-            // TODO: Handle error for setting port, address or client
+        } catch (NumberFormatException e) {
+            System.out.println("Error: Port must be an integer.");
+        } catch (Exception e) {
+            System.out.println("An unexpected error occurred: " + e.getMessage());
         }
     }
 

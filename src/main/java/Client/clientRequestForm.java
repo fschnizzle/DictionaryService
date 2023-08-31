@@ -1,7 +1,18 @@
+/**
+ * COMP90015: Distributed Systems - Assignment 1
+ * File: clientRequestForm.java
+ *
+ * Author: Flynn Schneider
+ * Student ID: 982143
+ * Date: 31/8/23
+ *
+ * Description: Contains methods regarding the creation of a popup GUI for DictionaryClient.
+ * Usage: [Indirect. Called by DictionaryClient upon Thread start().]
+ */
+
 package Client;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.Color;
 
 public class clientRequestForm extends JFrame {
@@ -137,6 +148,7 @@ public class clientRequestForm extends JFrame {
         setVisible(true);
 
         /* Event Listeners */
+        // Waits for button clicks and then sends to handler
         QueryButton.addActionListener(e -> handleChoice(1));
         AddButton.addActionListener(e -> handleChoice(2));
         UpdateButton.addActionListener(e -> handleChoice(3));

@@ -1,3 +1,16 @@
+/**
+ * COMP90015: Distributed Systems - Assignment 1
+ * File: DictionaryServer.java
+ *
+ * Author: Flynn Schneider
+ * Student ID: 982143
+ * Date: 31/8/23
+ *
+ * Description: This class initializes the server socket and manages client connections.
+ * Usage: java -jar DictionaryServer.jar <port> <dictionary-file>
+ */
+// TODO: Finish declaration. Rename file DictionaryClient.jar
+
 package Server;
 import java.io.*;
 import java.net.*;
@@ -12,17 +25,18 @@ public class DictionaryServer {
     private ServerSocket serverSocket;
     private ConcurrentHashMap dictionary;
 
-    // Instance of DictionaryDataHandler to handle file operations
+    // Instance of DictionaryDataHandler to handle dictionary data file operations
     private DictionaryDataHandler dataHandler = new DictionaryDataHandler();
     private String jsonFilePath;
 
 
-    /* Setters */
+    /* Constructor */
     public DictionaryServer(int port, String jsonFilePath) {
         this.port = port;
         setJsonFilePath(jsonFilePath);
     }
 
+    /* Setters */
     public void setDictionary(String jsonFilePath) throws IOException {
         this.dictionary = dataHandler.loadDictionaryFromFile(jsonFilePath);
     }
@@ -33,18 +47,19 @@ public class DictionaryServer {
 
     /* Methods */
     public boolean wordExists(String word){
+        // Checks if the word in the 'dictionary' hash map structure
         return dictionary.containsKey(word);
     }
 
     public String getDefinitions(String word){
+        // Gets the meaning(s) / definition(s) of a word. Seperating meanings by ";".
         String definitions = (String) this.dictionary.get(word);
-        definitions = definitions.replace(';','\n');
         return definitions;
     }
     public void start() {
-        // Create a thread pool with a fixed number of threads (e.g., 10)
-        ExecutorService threadPool = Executors.newFixedThreadPool(10);
-
+        // Create a thread pool with a fixed number of threads
+        final int numThreads = 10;
+        ExecutorService threadPool = Executors.newFixedThreadPool(numThreads);
 
         // Load initial data from JSON file into ConcurrentHashMap
         try {
@@ -54,14 +69,13 @@ public class DictionaryServer {
             return;
         }
 
-
         // Create a ScheduledExecutorService to save dictionary at regular intervals
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
         Runnable saveTask = () -> {
             try {
                 dataHandler.saveDictionaryToFile(dictionary, jsonFilePath);
             } catch (IOException e) {
-                e.printStackTrace(); // You may replace this with proper logging later
+                e.printStackTrace();
             }
         };
         scheduler.scheduleAtFixedRate(saveTask, 0, 30, TimeUnit.SECONDS); // saves every 30 seconds
@@ -75,7 +89,7 @@ public class DictionaryServer {
             while (true) {
                 Socket clientSocket = serverSocket.accept();
 
-                // Submit the client handling task to the thread pool
+                // Add the client handling task to the thread pool
                 threadPool.submit(() -> {
                     try {
                         handleClient(clientSocket);
@@ -85,6 +99,8 @@ public class DictionaryServer {
                     }
                 });
             }
+        } catch (BindException e) {
+            System.out.println("ERROR: Port " + port + " is already in use. Please use a different port.");
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -124,7 +140,6 @@ public class DictionaryServer {
             String command = requestParts[0];
             String word = requestParts.length > 1 ? requestParts[1] : "";
             String meaning = requestParts.length > 2 ? requestParts[2] : "";
-
             String response = "";
 
             // Read the command, delegate to CommandHandler, and respond to the client.
@@ -162,7 +177,6 @@ public class DictionaryServer {
                     else {
                         response = "'" + word + "' is not in the dictionary. Use ADD instead.";
                     }
-                    // response = word + " updated with new definition: " + meaning;
                     break;
                 case "REMOVE":
                     // Return {word exists}: (Remove word.) Inform user of removal success

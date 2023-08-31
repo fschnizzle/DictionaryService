@@ -1,3 +1,15 @@
+/**
+ * COMP90015: Distributed Systems - Assignment 1
+ * File: DictionaryDataHandler.java
+ *
+ * Author: Flynn Schneider
+ * Student ID: 982143
+ * Date: 31/8/23
+ *
+ * Description: Handles the loading of data from, and storing to, a dedicated Dictionary JSON file.
+ * Usage: [Indirect. Called by DictionaryServer upon Thread start.]
+ */
+
 package Server;
 
 import org.json.JSONObject;

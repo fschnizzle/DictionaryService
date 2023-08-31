@@ -44,6 +44,7 @@
             <properties>
               <alignmentX value="0.5"/>
               <autoscrolls value="false"/>
+              <editable value="false"/>
               <text value=""/>
             </properties>
           </component>
